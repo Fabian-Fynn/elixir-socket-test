@@ -1188,79 +1188,80 @@ for (var i = 0; i < len; ++i) {
 "use strict";
 
 require("phoenix_html");
+
+var _socket = require("./socket");
+
+var _socket2 = _interopRequireDefault(_socket);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 });
 
 ;require.register("web/static/js/socket", function(exports, require, module) {
-"use strict";
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // NOTE: The contents of this file will only be executed if
+// you uncomment its entry in "web/static/js/app.js".
+
+// To use Phoenix channels, the first step is to import Socket
+// and connect at the socket path in "lib/my_app/endpoint.ex":
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _phoenix = require("phoenix");
+var _phoenix = require('phoenix');
 
-var socket = new _phoenix.Socket("/socket", { params: { token: window.userToken } });
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// When you connect, you'll often need to authenticate the client.
-// For example, imagine you have an authentication plug, `MyAuth`,
-// which authenticates the session and assigns a `:current_user`.
-// If the current user exists you can assign the user's token in
-// the connection for use in the layout.
-//
-// In your "web/router.ex":
-//
-//     pipeline :browser do
-//       ...
-//       plug MyAuth
-//       plug :put_user_token
-//     end
-//
-//     defp put_user_token(conn, _) do
-//       if current_user = conn.assigns[:current_user] do
-//         token = Phoenix.Token.sign(conn, "user socket", current_user.id)
-//         assign(conn, :user_token, token)
-//       else
-//         conn
-//       end
-//     end
-//
-// Now you need to pass this token to JavaScript. You can do so
-// inside a script tag in "web/templates/layout/app.html.eex":
-//
-//     <script>window.userToken = "<%= assigns[:user_token] %>";</script>
-//
-// You will need to verify the user token in the "connect/2" function
-// in "web/channels/user_socket.ex":
-//
-//     def connect(%{"token" => token}, socket) do
-//       # max_age: 1209600 is equivalent to two weeks in seconds
-//       case Phoenix.Token.verify(socket, "user socket", token, max_age: 1209600) do
-//         {:ok, user_id} ->
-//           {:ok, assign(socket, :user, user_id)}
-//         {:error, reason} ->
-//           :error
-//       end
-//     end
-//
-// Finally, pass the token on connect as below. Or remove it
-// from connect if you don't care about authentication.
+var OurSocket = function () {
+  function OurSocket() {
+    _classCallCheck(this, OurSocket);
+  }
 
-// NOTE: The contents of this file will only be executed if
-// you uncomment its entry in "web/static/js/app.js".
+  _createClass(OurSocket, null, [{
+    key: 'init',
+    value: function init() {
+      var $name = $('#username');
+      var $msgBody = $('#message');
+      var $msgs = $('#messages');
 
-// To use Phoenix channels, the first step is to import Socket
-// and connect at the socket path in "lib/my_app/endpoint.ex":
-socket.connect();
+      var socket = new _phoenix.Socket("/socket");
+      socket.connect();
+      socket.onClose(function (e) {
+        return console.log("Closed connection");
+      });
 
-// Now that you are connected, you can join channels with a topic:
-var channel = socket.channel("topic:subtopic", {});
-channel.join().receive("ok", function (resp) {
-  console.log("Joined successfully", resp);
-}).receive("error", function (resp) {
-  console.log("Unable to join", resp);
+      var channel = socket.channel('rooms:lobby', {});
+      channel.join().receive('ok', function () {
+        return console.log('looks good');
+      }).receive('error', function () {
+        return console.log('connection error');
+      });
+
+      $msgBody.off("keypress").on("keypress", function (e) {
+        if (e.keyCode === 13) {
+          channel.push('new:message', {
+            user: $name.val(),
+            body: $msgBody.val()
+          });
+          $msgBody.val('');
+        }
+      });
+
+      channel.on("new:message", function (msg) {
+        $msgs.append('<p>' + msg.user + ': ' + msg.body + '</p>');
+      });
+    }
+  }]);
+
+  return OurSocket;
+}();
+
+$(function () {
+  return OurSocket.init();
 });
 
-exports.default = socket;
+exports.default = OurSocket;
 });
 
 ;require('web/static/js/app');
